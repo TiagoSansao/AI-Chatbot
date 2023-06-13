@@ -3,3 +3,4 @@
 vol/sessions/*
 !vol/sessions/.save
 node_modules
+dist
