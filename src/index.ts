@@ -1,9 +1,6 @@
-import { Client, LocalAuth } from "whatsapp-web.js";
-import { ChatBot } from "./api/chatbot";
-
-const client = new Client({
-  authStrategy: new LocalAuth({ clientId: "bot-1", dataPath: "./vol/sessions/" }),
-});
+import { client } from "@/loaders/wppClient";
+import { ChatBotAPI } from "@/api/chatbot";
+import { logger } from "./loaders/logger";
 
 const mockImgMsg = {
   _data: {
@@ -97,8 +94,8 @@ const mockImgMsg = {
 }; 
 
 async function main() {
-  const chatBot = new ChatBot(client);
-  chatBot.setupMsgListener();
+  logger.info("Starting project, instantiating bot...")
+  const chatBot = new ChatBotAPI(client);
   await chatBot.start();
 }
 

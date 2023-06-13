@@ -1,12 +1,8 @@
-import dotenv from "dotenv";
 import qrcode from 'qrcode-terminal';
 import { Client } from "whatsapp-web.js";
-import { Configuration, OpenAIApi } from "openai";
-
-dotenv.config({ path: ".env" });
-
-const configuration = new Configuration({ apiKey: process.env.OPENAI_API_KEY });
-const openai = new OpenAIApi(configuration);
+import { openai } from "@/loaders/openai";
+import { logger } from '@/loaders/logger';
+import ChatBotService from '@/services/chatbot';
 
 const mockTextMsg = {
   _data: {
@@ -84,68 +80,52 @@ const mockTextMsg = {
   links: []
 }
 
-class ChatBot {
+class ChatBotAPI {
   private client: Client;
 
   constructor(client: Client) {
     this.client = client;
+  }
 
-    this.client.on('qr', (qr) => {
-      qrcode.generate(qr, { small: true });
-    });
-
+  private setupReadyListener() {
     this.client.on('ready', () => {
-      console.log("Chatbot client was successfully instanced.");
+      logger.info("Chatbot client was successfully instanced.");
     });
   }
 
-  public async start(): Promise<boolean> {
+  private setupQrListener(): void {
+    this.client.on('qr', (qr) => {
+      qrcode.generate(qr, { small: true });
+    });
+  }
+
+  public setupMsgListener() {
+    this.client.on('message', async (msg) => {
+      logger.info(`Received message: ${msg.body} from ${msg.from}`)
+
+      const chatBotService = new ChatBotService();
+      const response = await chatBotService.execute(msg);
+
+      //if (response.error)
+      this.client.sendMessage(msg.from, response!);
+    })
+  }
+
+  public async start(): Promise<void> {
     try {
+      this.setupReadyListener();
+      this.setupQrListener();
+      this.setupMsgListener();
       await this.client.initialize();
 
       // TEST
       this.client.emit('message', mockTextMsg);
 
-      return true;
     } catch (error) {
       // TODO: error handling
-      console.log(error);
-      return false;
+      logger.error(error);
     }
-  }
-
-  public setupMsgListener() {
-    const chatAlways = ["554792774509@c.us", "554796627390@c.us" /*"551321911083@c.us"*/]
-
-    this.client.on('message', async (msg) => {
-      console.log(msg);
-
-      switch (msg.type) {
-        case ('chat'):
-          //
-          break;
-        case ('image'):
-          // OCR
-          break;
-        default:
-          return;
-      }
-      const COMMAND_PREFIX = "/";
-
-      if (msg.body.startsWith("amor") || chatAlways.indexOf(msg.from) !== -1) {
-
-        const completion = await openai.createCompletion({
-          model: "text-davinci-003",
-          prompt: msg.body,
-          max_tokens: 256,
-        });
-
-        const answer = completion.data.choices[0].text!;
-        console.log(answer);
-        this.client.sendMessage(msg.from, answer);
-      }
-    })
   }
 }
 
-export { ChatBot };
+export { ChatBotAPI };
