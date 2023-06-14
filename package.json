@@ -7,7 +7,6 @@
   "version": "0.0.1",
   "main": "index.js",
   "license": "UNLICENSED",
-  "private": true,
   "scripts": {
     "build": "tsc",
     "dev": "yarn run ts-node-dev -r tsconfig-paths/register ./src/index.ts",
