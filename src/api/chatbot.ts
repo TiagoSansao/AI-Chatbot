@@ -80,6 +80,7 @@ const mockTextMsg = {
   links: []
 }
 
+
 class ChatBotAPI {
   private client: Client;
 
@@ -116,10 +117,12 @@ class ChatBotAPI {
       this.setupReadyListener();
       this.setupQrListener();
       this.setupMsgListener();
+      console.log('fon')
       await this.client.initialize();
+      console.log('trab')
 
       // TEST
-      this.client.emit('message', mockTextMsg);
+      // this.client.emit('message', mockImgMsg);
 
     } catch (error) {
       // TODO: error handling
