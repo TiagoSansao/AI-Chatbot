@@ -1,8 +1,9 @@
 import qrcode from 'qrcode-terminal';
-import { Client } from "whatsapp-web.js";
-import { openai } from "@/loaders/openai";
+import { Client } from 'whatsapp-web.js';
 import { logger } from '@/loaders/logger';
 import ChatBotService from '@/services/chatbot';
+import { ApplicationError } from '@/errors/application';
+import { statusCode } from '@/types/statusCode';
 
 const mockTextMsg = {
   _data: {
@@ -10,7 +11,7 @@ const mockTextMsg = {
       fromMe: false,
       remote: '551321911083@c.us',
       id: '93E83B2F44C5C44D13A8811B13E5A7A3',
-      _serialized: 'false_551321911083@c.us_93E83B2F44C5C44D13A8811B13E5A7A3'
+      _serialized: 'false_551321911083@c.us_93E83B2F44C5C44D13A8811B13E5A7A3',
     },
     body: 'amor escreva uma mensagem para alegrar o dia',
     type: 'chat',
@@ -42,14 +43,14 @@ const mockTextMsg = {
     stickerSentTs: 0,
     isAvatar: false,
     requiresDirectConnection: false,
-    links: []
+    links: [],
   },
   mediaKey: undefined,
   id: {
     fromMe: false,
     remote: '551321911083@c.us',
     id: '93E83B2F44C5C44D13A8811B13E5A7A3',
-    _serialized: 'false_551321911083@c.us_93E83B2F44C5C44D13A8811B13E5A7A3'
+    _serialized: 'false_551321911083@c.us_93E83B2F44C5C44D13A8811B13E5A7A3',
   },
   ack: 1,
   hasMedia: false,
@@ -77,9 +78,8 @@ const mockTextMsg = {
   token: undefined,
   isGif: false,
   isEphemeral: undefined,
-  links: []
-}
-
+  links: [],
+};
 
 class ChatBotAPI {
   private client: Client;
@@ -88,9 +88,27 @@ class ChatBotAPI {
     this.client = client;
   }
 
-  private setupReadyListener() {
+  private chatErrorHandler(error: unknown, errMsgDestination: string) {
+    logger.error(error);
+
+    if (!(error instanceof ApplicationError)) {
+      this.client.sendMessage(errMsgDestination, 'An error happened, try again later.');
+
+      return;
+    }
+
+    if (error.statusCode === statusCode.INTERNAL_SERVER_ERROR) {
+      this.client.sendMessage(errMsgDestination, 'An error happened, try again later.');
+
+      return;
+    }
+
+    this.client.sendMessage(errMsgDestination, error.message);
+  }
+
+  private setupReadyListener(): void {
     this.client.on('ready', () => {
-      logger.info("Chatbot client was successfully instanced.");
+      logger.info('Chatbot client was successfully instanced.');
     });
   }
 
@@ -100,32 +118,45 @@ class ChatBotAPI {
     });
   }
 
-  public setupMsgListener() {
+  public setupMsgListener(): void {
     this.client.on('message', async (msg) => {
-      logger.info(`Received message: ${msg.body} from ${msg.from}`)
+      logger.info(`Received message: ${msg.body} from ${msg.from}`);
 
-      const chatBotService = new ChatBotService();
-      const response = await chatBotService.execute(msg);
+      const chatAlways = [
+        '554792774509@c.us',
+        '554789216109@c.us',
+        '554788921683@c.us',
+        '554796493045@c.us',
+        '554796627390@c.us',
+        '554797585833@c.us',
+        '551321911083@c.us' /*"551321911083@c.us"*/,
+      ];
+      const COMMAND_PREFIX = '/';
 
-      //if (response.error)
-      this.client.sendMessage(msg.from, response!);
-    })
+      console.log(msg);
+      try {
+        if (msg.body.startsWith('amor') || chatAlways.indexOf(msg.from) !== -1) {
+          const chatBotService = new ChatBotService();
+          const response = await chatBotService.execute(msg);
+
+          this.client.sendMessage(msg.from, response!);
+        }
+      } catch (error: unknown) {
+        const errMsgDestination = msg.from;
+
+        this.chatErrorHandler(error, errMsgDestination);
+      }
+    });
   }
 
   public async start(): Promise<void> {
-    try {
-      this.setupReadyListener();
-      this.setupQrListener();
-      this.setupMsgListener();
-      await this.client.initialize();
+    this.setupReadyListener();
+    this.setupQrListener();
+    this.setupMsgListener();
+    await this.client.initialize();
 
-      // TEST
-      // this.client.emit('message', mockImgMsg);
-
-    } catch (error) {
-      // TODO: error handling
-      logger.error(error);
-    }
+    // TEST
+    this.client.emit('message', mockTextMsg);
   }
 }
 
