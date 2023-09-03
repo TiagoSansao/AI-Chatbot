@@ -1,45 +1,52 @@
-import { logger } from "@/loaders/logger";
-import { openai } from "@/loaders/openai";
-import { AI } from "@/utils/AI";
-import { OCR } from "@/utils/OCR";
-import { Message, MessageMedia } from "whatsapp-web.js";
+import { logger } from '@/loaders/logger';
+import { AI } from '@/lib/AI';
+import { OCR } from '@/lib/OCR';
+import { Message, MessageMedia } from 'whatsapp-web.js';
+import { UnsupportedFormatError } from '@/errors/unsupportedFormat';
+import { MediaDownloadError } from '@/errors/mediaDownload';
 
 class ChatBotService {
+  private ai: AI;
+  private ocr: OCR;
+
+  constructor(ai: AI, ocr: OCR) {
+    this.ocr = ocr;
+    this.ai = ai;
+  }
+
+  private async handleImage(msg: Message): Promise<string> {
+    const media: MessageMedia = await msg.downloadMedia();
+    if (!media) throw new MediaDownloadError();
+
+    const ocrResponse = await this.ocr.execute(media);
+    const aiResponse = await this.ai.query(ocrResponse);
+
+    return aiResponse;
+  }
+
+  private async handleText(msg: Message): Promise<string> {
+    const aiResponse = await this.ai.query(msg.body);
+
+    return aiResponse;
+  }
+
   public async execute(msg: Message) {
-    try {
-      const ai = new AI(openai);
-      const ocr = new OCR();
-      const chatAlways = ["554792774509@c.us", "554796627390@c.us", "554797585833@c.us", "551321911083@c.us" /*"551321911083@c.us"*/]
-      const COMMAND_PREFIX = "/";
+    logger.info(`Chatbot service began to handle ${msg.type} message.`);
 
-      console.log(msg);
-      if (msg.body.startsWith("amor") || chatAlways.indexOf(msg.from) !== -1) {
+    let response: string;
 
-        const ai = new AI(openai);
-        switch (msg.type) {
-
-          case ('chat'):
-            const response = await ai.query(msg.body);
-    
-            return response;
-          case ('image'):
-            console.log('eoq img')
-            const media: MessageMedia = await msg.downloadMedia();
-            if (!media) return // TODO: error
-
-            const ocrResponse = await ocr.execute(media);
-            const aiResponse = await ai.query(ocrResponse);
-
-            return aiResponse;
-
-            break;
-          default:
-            return;
-        }
-      }
-    } catch (error) {
-      logger.error(error);
+    switch (msg.type) {
+      case 'chat':
+        response = await this.handleText(msg);
+        break;
+      case 'image':
+        response = await this.handleImage(msg);
+        break;
+      default:
+        throw new UnsupportedFormatError(msg.type);
     }
+
+    return response;
   }
 }
 

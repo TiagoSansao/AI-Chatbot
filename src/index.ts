@@ -1,11 +1,12 @@
-import { client } from "@/loaders/wppClient";
-import { ChatBotAPI } from "@/api/chatbot";
-import { logger } from "@/loaders/logger";
+import { client } from '@/loaders/wppClient';
+import { logger } from '@/loaders/logger';
+import { ChatBotAPI } from '@/api/chatbot';
+import { GlobalErrorHandler } from '@/loaders/globalErrorHandler';
 
-async function main() {
-  logger.info("Starting project, instantiating bot...")
-  const chatBot = new ChatBotAPI(client);
-  await chatBot.start();
-}
+logger.info('Starting project, wait until entities are successfully instantiated.');
 
-main();
+const globalErrorHandler = new GlobalErrorHandler();
+const chatBot = new ChatBotAPI(client);
+
+globalErrorHandler.start();
+chatBot.start();

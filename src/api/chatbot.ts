@@ -1,85 +1,15 @@
+import dotenv from 'dotenv';
 import qrcode from 'qrcode-terminal';
-import { Client } from "whatsapp-web.js";
-import { openai } from "@/loaders/openai";
+import { openai } from '@/loaders/openai';
+import { Client } from 'whatsapp-web.js';
 import { logger } from '@/loaders/logger';
 import ChatBotService from '@/services/chatbot';
+import { ApplicationError } from '@/errors/application';
+import { statusCode } from '@/types/statusCode';
+import { AI } from '@/lib/AI';
+import { OCR } from '@/lib/OCR';
 
-const mockTextMsg = {
-  _data: {
-    id: {
-      fromMe: false,
-      remote: '551321911083@c.us',
-      id: '93E83B2F44C5C44D13A8811B13E5A7A3',
-      _serialized: 'false_551321911083@c.us_93E83B2F44C5C44D13A8811B13E5A7A3'
-    },
-    body: 'amor escreva uma mensagem para alegrar o dia',
-    type: 'chat',
-    t: 1686532444,
-    notifyName: 'mariaaa',
-    from: '551321911083@c.us',
-    to: '554788303706@c.us',
-    self: 'in',
-    ack: 1,
-    isNewMsg: true,
-    star: false,
-    kicNotified: false,
-    recvFresh: true,
-    isFromTemplate: false,
-    pollInvalidated: false,
-    isSentCagPollCreation: false,
-    latestEditMsgKey: null,
-    latestEditSenderTimestampMs: null,
-    broadcast: false,
-    mentionedJidList: [],
-    groupMentions: [],
-    isVcardOverMmsDocument: false,
-    isForwarded: false,
-    hasReaction: false,
-    productHeaderImageRejected: false,
-    lastPlaybackProgress: 0,
-    isDynamicReplyButtonsMsg: false,
-    isMdHistoryMsg: false,
-    stickerSentTs: 0,
-    isAvatar: false,
-    requiresDirectConnection: false,
-    links: []
-  },
-  mediaKey: undefined,
-  id: {
-    fromMe: false,
-    remote: '551321911083@c.us',
-    id: '93E83B2F44C5C44D13A8811B13E5A7A3',
-    _serialized: 'false_551321911083@c.us_93E83B2F44C5C44D13A8811B13E5A7A3'
-  },
-  ack: 1,
-  hasMedia: false,
-  body: 'amor escreva uma mensagem para alegrar o dia',
-  type: 'chat',
-  timestamp: 1686532444,
-  from: '551321911083@c.us',
-  to: '554788303706@c.us',
-  author: undefined,
-  deviceType: 'android',
-  isForwarded: false,
-  forwardingScore: 0,
-  isStatus: false,
-  isStarred: false,
-  broadcast: false,
-  fromMe: false,
-  hasQuotedMsg: false,
-  hasReaction: false,
-  duration: undefined,
-  location: undefined,
-  vCards: [],
-  inviteV4: undefined,
-  mentionedIds: [],
-  orderId: undefined,
-  token: undefined,
-  isGif: false,
-  isEphemeral: undefined,
-  links: []
-}
-
+dotenv.config({ path: 'config/.env' });
 
 class ChatBotAPI {
   private client: Client;
@@ -88,9 +18,27 @@ class ChatBotAPI {
     this.client = client;
   }
 
-  private setupReadyListener() {
+  private chatErrorHandler(error: unknown, errMsgDestination: string) {
+    logger.error(error);
+
+    if (!(error instanceof ApplicationError)) {
+      this.client.sendMessage(errMsgDestination, 'An error happened, try again later.');
+
+      return;
+    }
+
+    if (error.statusCode === statusCode.INTERNAL_SERVER_ERROR) {
+      this.client.sendMessage(errMsgDestination, 'An error happened, try again later.');
+
+      return;
+    }
+
+    this.client.sendMessage(errMsgDestination, error.message);
+  }
+
+  private setupReadyListener(): void {
     this.client.on('ready', () => {
-      logger.info("Chatbot client was successfully instanced.");
+      logger.info('Chatbot client was successfully instanced.');
     });
   }
 
@@ -100,34 +48,43 @@ class ChatBotAPI {
     });
   }
 
-  public setupMsgListener() {
-    this.client.on('message', async (msg) => {
-      logger.info(`Received message: ${msg.body} from ${msg.from}`)
+  public setupMsgListener(): void {
+    this.client.on('message_create', async (msg) => {
+      // TESTING PURPOSE BLOCK BELOW
+      // If message has authors, it was sent on a group chat
+      if (
+        msg.from === '554788303706@c.us' &&
+        !msg.body.startsWith('/ai') &&
+        msg.type === 'chat'
+      )
+        return;
+      else if (msg.author === '554788303706@c.us') {
+        logger.debug('From my self');
+      } else if (msg.author) return;
+      logger.info(`Received message: ${msg.body} from ${msg.from}`);
 
-      const chatBotService = new ChatBotService();
-      const response = await chatBotService.execute(msg);
+      try {
+        const ai = new AI(openai);
+        const apiURL = process.env.OCR_API_URL;
+        const apiKey = process.env.OCR_API_KEY;
+        const ocr = new OCR(apiURL, apiKey);
+        const chatBotService = new ChatBotService(ai, ocr);
+        const response = await chatBotService.execute(msg);
 
-      //if (response.error)
-      this.client.sendMessage(msg.from, response!);
-    })
+        this.client.sendMessage(msg.from, response);
+      } catch (error: unknown) {
+        const errMsgDestination = msg.from;
+
+        this.chatErrorHandler(error, errMsgDestination);
+      }
+    });
   }
 
   public async start(): Promise<void> {
-    try {
-      this.setupReadyListener();
-      this.setupQrListener();
-      this.setupMsgListener();
-      console.log('fon')
-      await this.client.initialize();
-      console.log('trab')
-
-      // TEST
-      // this.client.emit('message', mockImgMsg);
-
-    } catch (error) {
-      // TODO: error handling
-      logger.error(error);
-    }
+    this.setupReadyListener();
+    this.setupQrListener();
+    this.setupMsgListener();
+    await this.client.initialize();
   }
 }
 
