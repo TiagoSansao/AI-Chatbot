@@ -1,3 +1,4 @@
+import { logger } from '@/loaders/logger';
 import { OpenAIApi } from 'openai';
 
 class AI {
@@ -8,13 +9,15 @@ class AI {
   }
 
   public async query(message: string): Promise<string> {
-    const completion = await this.client.createCompletion({
+    const completion = await this.client.createChatCompletion({
       model: 'gpt-4',
-      prompt: message,
+      messages: [{ role: 'user', content: message }],
       max_tokens: 2000,
     });
 
-    const answer = completion.data.choices[0].text!;
+    const answer = completion.data.choices[0].message!.content;
+
+    logger.info(`Complete received from LLM: ${answer}`);
 
     return answer;
   }
