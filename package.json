@@ -4,7 +4,7 @@
     "name": "Tiago Sansão",
     "email": "tiagossansao@gmail.com"
   },
-  "version": "0.0.1",
+  "version": "1.0.0",
   "main": "index.js",
   "license": "UNLICENSED",
   "scripts": {
