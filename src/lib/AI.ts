@@ -1,4 +1,4 @@
-import { OpenAIApi } from "openai";
+import { OpenAIApi } from 'openai';
 
 class AI {
   private client: OpenAIApi;
@@ -9,9 +9,9 @@ class AI {
 
   public async query(message: string): Promise<string> {
     const completion = await this.client.createCompletion({
-      model: "text-davinci-003",
+      model: 'gpt-4',
       prompt: message,
-      max_tokens: 256,
+      max_tokens: 2000,
     });
 
     const answer = completion.data.choices[0].text!;
@@ -20,4 +20,4 @@ class AI {
   }
 }
 
-export { AI }
+export { AI };

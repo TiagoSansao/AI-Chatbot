@@ -1,3 +1,4 @@
+import dotenv from 'dotenv';
 import qrcode from 'qrcode-terminal';
 import { openai } from '@/loaders/openai';
 import { Client } from 'whatsapp-web.js';
@@ -7,6 +8,8 @@ import { ApplicationError } from '@/errors/application';
 import { statusCode } from '@/types/statusCode';
 import { AI } from '@/lib/AI';
 import { OCR } from '@/lib/OCR';
+
+dotenv.config({ path: 'config/.env' });
 
 class ChatBotAPI {
   private client: Client;
@@ -64,7 +67,9 @@ class ChatBotAPI {
       try {
         if (msg.body.startsWith('amor') || chatAlways.indexOf(msg.from) !== -1) {
           const ai = new AI(openai);
-          const ocr = new OCR();
+          const apiURL = process.env.OCR_API_URL;
+          const apiKey = process.env.OCR_API_KEY;
+          const ocr = new OCR(apiURL, apiKey);
           const chatBotService = new ChatBotService(ai, ocr);
           const response = await chatBotService.execute(msg);
 
