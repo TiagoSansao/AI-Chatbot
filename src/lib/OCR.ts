@@ -1,7 +1,8 @@
-import { MessageMedia } from "whatsapp-web.js";
+import { MessageMedia } from 'whatsapp-web.js';
 import dotenv from 'dotenv';
+import { logger } from '@/loaders/logger';
 
-dotenv.config({ path: ".env" });
+dotenv.config({ path: 'config/.env' });
 
 class OCR {
   public async execute(image: MessageMedia) {
@@ -13,15 +14,19 @@ class OCR {
 
     requestData.append('base64image', base64format);
 
-    const response = await fetch(apiURL, { method: 'POST', body: requestData, headers: { apiKey }} );
+    const response = await fetch(apiURL, {
+      method: 'POST',
+      body: requestData,
+      headers: { apiKey },
+    });
+
     const responseData = await response.json();
     const text = responseData.ParsedResults[0].ParsedText;
 
-    console.log('parsed text ', text);
+    logger.info(`Parsed text from OCR lib: ${text}`);
 
     return text;
- 
   }
 }
 
-export { OCR }
+export { OCR };
