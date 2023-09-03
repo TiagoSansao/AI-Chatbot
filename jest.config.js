@@ -8,7 +8,7 @@ module.exports = {
   moduleFileExtensions: ["js", "json", "jsx", "ts", "tsx", "node"],
   testEnvironment: "node",
   preset: 'ts-jest',
-  autoMock: false,
+  automock: false,
   modulePaths: [compilerOptions.baseUrl],
   moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, {prefix: '<rootDir>'})
 };
