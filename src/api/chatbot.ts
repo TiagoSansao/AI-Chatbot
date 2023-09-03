@@ -50,7 +50,10 @@ class ChatBotAPI {
 
   private async handleMessages(msg: Message) {
     // If message has authors, it was sent on a group chat
-    if (msg.author || !msg.body.startsWith('/ai')) return;
+    const isGroupMessage = msg.author ? true : false;
+    const hasChatbotPrefix = msg.body.startsWith('/ai');
+
+    if (isGroupMessage && !hasChatbotPrefix) return;
 
     logger.info(`Received message: ${msg.body} from ${msg.from}`);
 
