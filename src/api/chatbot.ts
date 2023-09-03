@@ -50,31 +50,28 @@ class ChatBotAPI {
 
   public setupMsgListener(): void {
     this.client.on('message_create', async (msg) => {
+      // TESTING PURPOSE BLOCK BELOW
+      // If message has authors, it was sent on a group chat
+      if (
+        msg.from === '554788303706@c.us' &&
+        !msg.body.startsWith('/ai') &&
+        msg.type === 'chat'
+      )
+        return;
+      else if (msg.author === '554788303706@c.us') {
+        logger.debug('From my self');
+      } else if (msg.author) return;
       logger.info(`Received message: ${msg.body} from ${msg.from}`);
 
-      const chatAlways = [
-        '554788303706@c.us',
-        '554792774509@c.us',
-        '554789216109@c.us',
-        '554788921683@c.us',
-        '554796493045@c.us',
-        '554796627390@c.us',
-        '554797585833@c.us',
-        '551321911083@c.us' /*"551321911083@c.us"*/,
-      ];
-
-      console.log(msg);
       try {
-        if (msg.body.startsWith('amor') || chatAlways.indexOf(msg.from) !== -1) {
-          const ai = new AI(openai);
-          const apiURL = process.env.OCR_API_URL;
-          const apiKey = process.env.OCR_API_KEY;
-          const ocr = new OCR(apiURL, apiKey);
-          const chatBotService = new ChatBotService(ai, ocr);
-          const response = await chatBotService.execute(msg);
+        const ai = new AI(openai);
+        const apiURL = process.env.OCR_API_URL;
+        const apiKey = process.env.OCR_API_KEY;
+        const ocr = new OCR(apiURL, apiKey);
+        const chatBotService = new ChatBotService(ai, ocr);
+        const response = await chatBotService.execute(msg);
 
-          this.client.sendMessage(msg.from, response);
-        }
+        this.client.sendMessage(msg.from, response);
       } catch (error: unknown) {
         const errMsgDestination = msg.from;
 
