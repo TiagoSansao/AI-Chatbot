@@ -1,3 +1,4 @@
+import { OpenaiQueryFailedError } from '@/errors/openaiQueryFailed';
 import { logger } from '@/loaders/logger';
 import { OpenAIApi } from 'openai';
 
@@ -15,7 +16,9 @@ class AI {
       max_tokens: 2000,
     });
 
-    const answer = completion.data.choices[0].message!.content;
+    if (!completion.data.choices[0].message) throw new OpenaiQueryFailedError();
+
+    const answer = completion.data.choices[0].message.content;
 
     logger.info(`Complete received from LLM: ${answer}`);
 
