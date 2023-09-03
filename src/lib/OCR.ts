@@ -1,6 +1,6 @@
 import { MessageMedia } from 'whatsapp-web.js';
 import { logger } from '@/loaders/logger';
-import { MissingCredentials } from '@/errors/missingCredentials';
+import { MissingCredentialsError } from '@/errors/missingCredentials';
 
 class OCR {
   private apiURL?: string;
@@ -12,7 +12,7 @@ class OCR {
   }
 
   public async execute(image: MessageMedia) {
-    if (!this.apiURL || !this.apiKey) throw new MissingCredentials();
+    if (!this.apiURL || !this.apiKey) throw new MissingCredentialsError();
 
     const requestData = new FormData();
     const base64format = `data:${image.mimetype};base64,${image.data}`;

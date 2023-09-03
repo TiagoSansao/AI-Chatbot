@@ -1,7 +1,7 @@
 import { ApplicationError } from '@/errors/application';
 import { statusCode } from '@/types/statusCode';
 
-export class MissingCredentials extends ApplicationError {
+export class MissingCredentialsError extends ApplicationError {
   constructor() {
     super();
     this.name = this.constructor.name;
