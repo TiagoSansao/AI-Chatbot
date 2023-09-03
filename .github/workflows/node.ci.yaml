@@ -39,4 +39,4 @@ jobs:
           node-version: 18
           cache: 'npm'
       - run: yarn
-      - run: yarn run linter
+      - run: yarn run lint

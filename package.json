@@ -11,7 +11,8 @@
     "build": "tsc",
     "dev": "yarn run ts-node-dev -r tsconfig-paths/register ./src/index.ts",
     "start": "node -r tsconfig-paths/register index.js",
-    "test": "jest"
+    "test": "jest",
+    "lint": "eslint src __tests__"
   },
   "dependencies": {
     "dotenv": "^16.1.4",
