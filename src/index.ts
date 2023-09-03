@@ -1,16 +1,12 @@
-import { Client, LocalAuth } from "whatsapp-web.js";
-import { ChatBot } from "./api/chatbot";
-import dotenv from "dotenv";
+import { client } from '@/loaders/wppClient';
+import { logger } from '@/loaders/logger';
+import { ChatBotAPI } from '@/api/chatbot';
+import { GlobalErrorHandler } from '@/loaders/globalErrorHandler';
 
-dotenv.config({ path: ".env" });
+logger.info('Starting project, wait until entities are successfully instantiated.');
 
-// remove dotenv from here
+const globalErrorHandler = new GlobalErrorHandler();
+const chatBot = new ChatBotAPI(client);
 
-const client = new Client({
-  authStrategy: new LocalAuth({ clientId: "bot-1", dataPath: "./vol/sessions/" }),
-});
-
-const chatBot = new ChatBot(client);
-chatBot.setupMsgListener();
+globalErrorHandler.start();
 chatBot.start();
-console.log('fonzadinha');

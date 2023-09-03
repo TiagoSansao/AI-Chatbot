@@ -1,5 +1,6 @@
 .env
 .wwebjs_cache
 vol/sessions/*
-!vol/sessions/.save
+!vol/sessions/.keep
 node_modules
+dist
